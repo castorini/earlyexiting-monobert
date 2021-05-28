@@ -1,6 +1,6 @@
 # Early Exiting MonoBERT
 
-This is the code base for the paper Early Exiting BERT for Efficient Document Ranking.
+This is the code base for the paper [Early Exiting BERT for Efficient Document Ranking](https://www.aclweb.org/anthology/2020.sustainlp-1.11/).
 
 ## Installation
 
