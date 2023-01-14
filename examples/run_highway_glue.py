@@ -179,6 +179,7 @@ def get_args():
 
 args = get_args()
 
+os.makedirs("logs", exist_ok=True)
 logging.basicConfig(filename="logs/{}.log".format(args.log_id),
                     filemode='w',
                     level=0)

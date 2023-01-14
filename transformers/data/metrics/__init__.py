@@ -65,6 +65,8 @@ if _has_sklearn:
             return {"acc": simple_accuracy(preds, labels)}
         elif task_name == "asnq":
             return {"acc": simple_accuracy(preds, labels)}
+        elif task_name == "trec-dl":
+            return {"acc": simple_accuracy(preds, labels)}
         elif task_name == "msmarco":
             return acc_and_f1(preds, labels)
         elif task_name == "mrpc":

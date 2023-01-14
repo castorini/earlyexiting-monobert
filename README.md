@@ -13,12 +13,12 @@ conda install pytorch==1.3.1 torchvision cudatoolkit=10.1 -c pytorch
 Also install the following packages in the environment:
 
 ```
-tqdm tensorboardX boto3 regex sentencepiece sacremoses scikit-learn
+tqdm tensorboardX boto3 regex sentencepiece sacremoses scikit-learn pyserini
 ```
 
 ##  Data Preparation
 
-Two datasets are used in this repo: MS MARCO passage and ASNQ.
+Two datasets are used in this repo: MS MARCO passage and ASNQ. Additionally we can use TREC-DL 2019.
 
 #### MS MARCO passage (https://github.com/microsoft/MSMARCO-Passage-Ranking)
 
@@ -52,7 +52,7 @@ Go to `evaluation/msmarco`, download the qrel collection and extract it (we'll n
 
 ```
 wget https://msmarco.blob.core.windows.net/msmarcoranking/collectionandqueries.tar.gz
-tar -xvzf collectionandqueries.tar.gz
+tar xvzf collectionandqueries.tar.gz
 ```
 
 #### ASNQ (https://github.com/alexa/wqa_tanda)
@@ -61,14 +61,34 @@ Go to `data/asnq`, download the training set and extract it:
 
 ```
 wget https://wqa-public.s3.amazonaws.com/tanda-aaai-2020/data/asnq.tar
-tar -xvf asnq.tar
+tar xvf asnq.tar
 ```
 
-then preprocess the dataset and partition the def set:
+then preprocess the dataset and partition the dev set:
 
 ```
 python preprocess.py
 python partition_eval.py dev
+```
+
+#### Trec-dl (https://microsoft.github.io/msmarco/TREC-Deep-Learning-2019)
+
+Go to `data/trec-dl`, download and extract the required files into a `raw_data` folder
+
+```
+mkdir raw_data
+cd raw_data
+wget https://trec.nist.gov/data/deep/2019qrels-pass.txt
+wget https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz
+tar xzvf msmarco-test2019-queries.tsv.gz
+wget https://msmarco.blob.core.windows.net/msmarcoranking/collection.tar.gz
+tar xzvf collection.tar.gz
+```
+
+then preprocess the dataset and use BM25 for first stage retrieval (with pyserini):
+
+```
+python bm25.py
 ```
 
 ## Training the Model
@@ -79,18 +99,26 @@ scripts/train.sh bert base DATASET all
 
 `bert base` is the pre-trained model; `all` stands for training all layers together.
 
-DATASET can be chosen among `msmarco` or `asnq`.
+DATASET can be chosen among `msmarco` or `asnq`. We resue `msmarco`'s trained models for `trec-dl`.
 
 ## Evaluating the Model
 
-First go to `evaluation/asnq`, and build the eval tool and copy the qrel file over:
+First go to `evaluation/asnq`, and build the eval tool and link the qrel file over:
 
 ```
 tar xvzf trec_eval.9.0.4.tar.gz
 cd trec_eval.9.0.4
 make
 cd ..
-cp ../../data/asnq/asnq.qrel.dev.tsv .
+ln -s ../../data/asnq/asnq.qrel.dev.tsv .
+```
+
+Also link the qrel file and trec_eval folder over for trec-dl:
+
+```
+# at evaluation/trec-dl
+ln -s ../../data/trec-dl/raw_data/2019qrels-pass.txt .
+ln -s ../asnq/trec_eval.9.0.4 .
 ```
 
 #### Evaluate with early exiting
@@ -101,7 +129,7 @@ We evaluate the model efficiency with real early exiting.
 scripts/eval_ee.sh bert base DATASET all PARTITIONS PC NC
 ```
 
-PARTITIONS is the partitions you wish to evaluate. If you wish to evaluate the entire dev set, it's `0-69` for msmarco and `0-5` for asnq.
+PARTITIONS is the partitions you wish to evaluate. If you wish to evaluate the entire dev set, it's `0-69` for msmarco, `0-5` for asnq, and `0` for trec-dl.
 
 `PC` and `NC` are positive and negative confidence thresholds.
 

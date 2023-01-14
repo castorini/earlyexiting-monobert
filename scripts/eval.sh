@@ -6,7 +6,7 @@ PATH_TO_DATA="data/"
 
 MODEL_TYPE=${1}  # bert
 MODEL_SIZE=${2}  # base
-DATASET=${3}     # msmarco or asnq
+DATASET=${3}     # msmarco, asnq, or trec-dl
 ROUTINE=${4}     # all
 PARTITION_LIST=${5}
 SEED=42
@@ -26,10 +26,18 @@ then
   EVAL_RESULT_DIR=evaluation/asnq
 fi
 
-mkdir -p $PARTITION_CACHE
-ln -sf $PWD/saved_models/${MODEL_TYPE}-${MODEL_SIZE}/$DATASET/${ROUTINE}-${SEED}/vocab.txt \
-      ./saved_models/${MODEL_TYPE}-${MODEL_SIZE}/$DATASET/${ROUTINE}-${SEED}/${TARGET_MODEL}
+if [[ $DATASET = trec-dl ]]
+then
+  TARGET_MODEL=epoch-3  # reusing msmarco's model
+  EVAL_RESULT_DIR=evaluation/trec-dl
+fi
 
+mkdir -p $PARTITION_CACHE
+if [[ ! $DATASET == trec-dl ]]
+then
+    ln -sf $PWD/saved_models/${MODEL_TYPE}-${MODEL_SIZE}/$DATASET/${ROUTINE}-${SEED}/vocab.txt \
+        ./saved_models/${MODEL_TYPE}-${MODEL_SIZE}/$DATASET/${ROUTINE}-${SEED}/${TARGET_MODEL}
+fi
 
 echo ${MODEL_TYPE}-${MODEL_SIZE}/$DATASET $ROUTINE
 python -um examples.run_highway_glue \

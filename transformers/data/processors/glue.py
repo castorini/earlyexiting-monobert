@@ -742,6 +742,74 @@ class AsnqProcessor(DataProcessor):
         return examples
 
 
+class TrecdlProcessor(DataProcessor):
+    """Processor for the MRPC data set (GLUE version)."""
+
+    def get_file_name(self):
+        self.file_dict = {
+            'train': 'train.tsv',
+            'dev': 'dev.tsv',
+        }
+        return self.file_dict
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(tensor_dict['idx'].numpy(),
+                            tensor_dict['sentence1'].numpy().decode('utf-8'),
+                            tensor_dict['sentence2'].numpy().decode('utf-8'),
+                            str(tensor_dict['label'].numpy()))
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        logger.info("LOOKING AT {}".format(os.path.join(data_dir, "train.tsv")))
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, self.file_dict['train'])), "train")
+
+    def get_dev_examples(self, data_dir, fname=None):
+        """See base class."""
+        if fname is None:
+            fname = self.file_dict['dev']
+        print(data_dir, fname)
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, fname)), "dev")
+
+    def get_test_examples(self, data_dir, fname=None):
+        """See base class."""
+        if fname is None:
+            fname = self.file_dict['test']
+        print(data_dir, fname)
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, fname)), "test")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            if set_type == 'train' and i == 0:
+                continue
+            if i > 0 and i % 1000000 == 0:
+                print('creating examples:{}M'.format(i / 1000000))
+
+            if set_type == 'train':
+                guid = "%s-%s" % (set_type, i)
+                text_a = line[0]
+                text_b = line[1]
+            elif set_type in ['dev', 'test']:
+                guid = "{}-{}-{}-{}".format(set_type, i, line[0], line[1])  # line[0] and line[1] are qid and pid
+                text_a = line[2]
+                text_b = line[3]
+            else:
+                raise NotImplementedError()
+
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=text_b, label='0'))  # label here is meaningless, just a placeholder
+        return examples
+
+
 glue_tasks_num_labels = {
     "cola": 2,
     "mnli": 3,
@@ -755,6 +823,7 @@ glue_tasks_num_labels = {
     "sick": 1,
     "msmarco": 2,
     "asnq": 2,
+    "trec-dl": 2,
 }
 
 glue_processors = {
@@ -771,6 +840,7 @@ glue_processors = {
     "sick": SickProcessor,
     "msmarco": MsmarcoProcessor,
     "asnq": AsnqProcessor,
+    "trec-dl": TrecdlProcessor,
 }
 
 glue_output_modes = {
@@ -787,4 +857,5 @@ glue_output_modes = {
     "sick": "regression",
     "msmarco": "classification",
     "asnq": "classification",
+    "trec-dl": "classification",
 }
